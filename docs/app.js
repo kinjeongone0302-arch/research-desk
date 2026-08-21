@@ -45,9 +45,10 @@ function lineChart(node, series, opt) {
   const xs = series.map(p => new Date(p.d).getTime());
   const ys = series.map(p => p.bp);
   const refs = (opt.refs || []).filter(r => r.bp != null);
+  const band = opt.band && series.some(p => p.hi != null && p.hi !== p.lo);
   const x0 = Math.min(...xs), x1 = Math.max(...xs);
-  let y0 = Math.min(...ys, ...refs.map(r => r.bp));
-  let y1 = Math.max(...ys, ...refs.map(r => r.bp));
+  let y0 = Math.min(...ys, ...refs.map(r => r.bp), ...(band ? series.map(p => p.lo ?? p.bp) : []));
+  let y1 = Math.max(...ys, ...refs.map(r => r.bp), ...(band ? series.map(p => p.hi ?? p.bp) : []));
   const pad = (y1 - y0) * .15 || Math.max(1, y1 * .05);
   y0 = Math.max(0, y0 - pad); y1 = y1 + pad;
   const X = t => L + (W - L - R) * (x1 === x0 ? .5 : (t - x0) / (x1 - x0));
@@ -81,12 +82,23 @@ function lineChart(node, series, opt) {
       stroke="var(--faint)" stroke-width="1" stroke-dasharray="5 4" opacity=".55"/>
     <text x="${W - R - 2}" y="${Y(r.bp) - 4}" text-anchor="end" font-size="9.5" fill="var(--faint)">${esc(r.label)} ${r.bp.toFixed(0)}</text>`).join('');
 
+  /* 그날 체결의 최저~최고를 옅게 깐다. 하루 안에서도 이만큼 움직인다는 걸 보여준다 */
+  let bandPath = '';
+  if (band) {
+    const top = series.map((p, i) => `${i ? 'L' : 'M'}${X(xs[i]).toFixed(1)},${Y(p.hi ?? p.bp).toFixed(1)}`).join('');
+    const bot = series.slice().reverse().map((p, i) => {
+      const j = series.length - 1 - i;
+      return `L${X(xs[j]).toFixed(1)},${Y(p.lo ?? p.bp).toFixed(1)}`;
+    }).join('');
+    bandPath = `<path d="${top}${bot}Z" fill="var(--accent)" opacity=".13"/>`;
+  }
+
   const dots = series.length <= 400
     ? series.map((p, i) => `<circle cx="${X(xs[i]).toFixed(1)}" cy="${Y(p.bp).toFixed(1)}" r="1.7" fill="var(--accent)" opacity=".85"/>`).join('')
     : '';
 
   node.appendChild(el(`<svg viewBox="0 0 ${W} ${H}" style="height:${H}px">
-    ${grid}${refLines}
+    ${grid}${bandPath}${refLines}
     ${dashed.map(d => `<path d="${path(d)}" fill="none" stroke="var(--accent)" stroke-width="1" stroke-dasharray="3 3" opacity=".45"/>`).join('')}
     ${solid.map(r => `<path d="${path(r)}" fill="none" stroke="var(--accent)" stroke-width="1.8" stroke-linejoin="round"/>`).join('')}
     ${dots}
@@ -182,6 +194,16 @@ Promise.all([
 
 /* ═══════════ CDS 표 ═══════════ */
 const SEL = { ai: null };
+const RANGES = [['1개월', 30], ['3개월', 90], ['6개월', 180], ['1년', 365], ['전체', 0]];
+let RANGE = 0;                    // 0 = 전체
+
+function clipRange(series) {
+  if (!RANGE || !series.length) return series;
+  const last = new Date(series[series.length - 1].d);
+  const cut = new Date(last.getTime() - RANGE * 864e5).toISOString().slice(0, 10);
+  const out = series.filter(p => p.d >= cut);
+  return out.length >= 2 ? out : series.slice(-2);
+}
 
 function cdsRows(group, keys) {
   return keys.map(n => {
@@ -240,17 +262,26 @@ function renderCdsGroup(kind, group, order, cardN) {
   if (ch && sel) {
     $('#' + kind + 'ChartTitle').textContent = sel.name + ' 5Y CDS';
     const w = chg(sel.series, 7), m = chg(sel.series, 30);
+    const lastPt = sel.series[sel.series.length - 1];
     $('#' + kind + 'ChartSub').innerHTML = `${sel.series.length}개 관측 · 1주 ${sgn(w)}bp · 1개월 ${sgn(m)}bp`
+      + (lastPt && lastPt.n ? ` · 마지막 날 체결 ${lastPt.n}건 (${lastPt.lo}~${lastPt.hi}bp)` : '')
       + (sel.quoted ? ` · 이 중 ${sel.quoted}건은 딜러 호가가 공시에 직접 실린 값` : '')
       + (sel.branch === 'high' ? ' · <b>표준쿠폰(100bp) 위에서 거래되는 크레딧</b>'
          : sel.branch === 'mixed' ? ' · <b>기간 중 표준쿠폰 선을 넘어선 크레딧</b>' : '');
     /* 기준선은 스케일이 맞을 때만. 국가 CDS(20~40bp)에 하이일드 지수(300bp)를 얹으면
        차트가 바닥에 눌려버린다 — 기업 크레딧 탭에서, 값이 시계열 범위 안에 들 때만 그린다. */
-    const lo = Math.min(...sel.series.map(p => p.bp)), hi = Math.max(...sel.series.map(p => p.bp));
+    const view = clipRange(sel.series);
+    const lo = Math.min(...view.map(p => p.bp)), hi = Math.max(...view.map(p => p.bp));
     const bench = kind !== 'ai' ? [] : ['CDX IG', 'CDX HY']
       .map(n => CDS.indices && CDS.indices[n] ? { label: n, bp: CDS.indices[n].last_bp } : null)
       .filter(r => r && r.bp != null && r.bp >= lo * 0.7 && r.bp <= hi * 1.3);
-    lineChart(ch, sel.series, { id: kind, refs: bench });
+    lineChart(ch, view, { id: kind, refs: bench, band: true });
+    const rb = $('#' + kind + 'Range');
+    if (rb) {
+      rb.innerHTML = RANGES.map(([lab, d]) =>
+        `<button class="rbtn ${RANGE === d ? 'on' : ''}" data-r="${d}">${lab}</button>`).join('');
+      rb.querySelectorAll('[data-r]').forEach(b => b.onclick = () => { RANGE = +b.dataset.r; render(); });
+    }
   }
   const cv = $('#' + kind + 'Curve');
   if (cv && sel) curveChart(cv, sel.curve || []);
@@ -435,6 +466,13 @@ function renderMethod() {
     체결(보통 5~8건)을 함께 놓고 중앙값을 낸다. 또 '5Y' 로 묶은 구간이 실제로는 4.5~5.6Y 라
     그날 어느 만기가 거래됐느냐만으로 몇 bp 씩 달라진다 — 종목별 커브 기울기로 정확히 5Y 로 환산한 뒤
     집계한다. 마지막으로 앞뒤 관측과 동떨어진 하루짜리 값은 버린다.
+    <h4>차트 읽는 법</h4>
+    파란 선은 <b>그날 체결된 5Y 거래들의 중앙값</b>이고, 옅은 띠는 <b>그날의 최저~최고 체결 범위</b>다.
+    CDS 는 거래소가 없어 종가가 존재하지 않는다 — 딜러끼리 장외로 하루 종일 주고받는 게 전부라,
+    "그날 값"은 흩어진 체결의 중앙값으로 잡을 수밖에 없다. 띠가 두꺼운 날은 장중에 많이 움직인 날이다.
+    (오라클 2026-08-18: 14건이 199~210bp 에 흩어져 체결, 중앙값 202bp)
+    점은 실제 관측이고, 굵은 실선은 관측이 촘촘한 구간, 얇은 점선은 그 사이 관측이 아예 없는 구간이다 —
+    값을 모른다는 뜻이지 평평했다는 뜻이 아니다.
     <h4>없는 종목</h4>
     네비우스는 DTCC 20개월치에 단일물 CDS 체결이 0건이다 — 전환사채 위주라 CDS 시장 자체가 서 있지 않다.
     애플은 47건뿐이라 시계열이 되지 않는다. 둘 다 넣지 않았다.

@@ -282,7 +282,7 @@ def _smooth(series, cands, side_of_day, rounds=2):
                 del series[d]                     # 어느 쪽으로도 설명이 안 되는 날
                 continue
             side_of_day[d] = side
-            series[d] = (round(val, 2), series[d][1])
+            series[d] = (round(val, 2),) + tuple(series[d][1:])
 
 
 def daily_from(trades, fallback):
@@ -301,10 +301,12 @@ def daily_from(trades, fallback):
     for d, ts in by_day.items():
         vals = [t["bp"] for t in ts]
         has_q = any(t.get("src") == "quoted" for t in ts)
-        out[d] = (round(statistics.median(vals), 2), "quoted" if has_q else "derived")
+        # 그날 체결 건수와 폭도 같이 남긴다 — 값이 얼마나 두껍게 뒷받침되는지 보여야 한다
+        out[d] = (round(statistics.median(vals), 2), "quoted" if has_q else "derived",
+                  len(vals), round(min(vals), 1), round(max(vals), 1))
     # 5Y 근처 체결이 아예 없던 날(보간으로 채웠던 날)은 기존 값을 남긴다
     for d, v in fallback.items():
-        out.setdefault(d, v)
+        out.setdefault(d, v if len(v) > 2 else (v[0], v[1], 0, v[0], v[0]))
     out = dict(sorted(out.items()))
     _despike(out)
     return out
@@ -423,7 +425,8 @@ def main():
         crossed = len(set(side_of_day.values())) > 1
         return {
             "trades": len(trades),
-            "series": [{"d": d, "bp": v, "src": s} for d, (v, s) in sorted(series.items())],
+            "series": [{"d": d, "bp": v[0], "src": v[1], "n": v[2],
+                        "lo": v[3], "hi": v[4]} for d, v in sorted(series.items())],
             "curve": curve(trades, curve_days),
             "branch": ("mixed" if crossed else
                        (list(side_of_day.values())[-1] if side_of_day else "low")),
