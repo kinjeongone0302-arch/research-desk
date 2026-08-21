@@ -11,4 +11,4 @@ if git diff --cached --quiet; then
 fi
 git commit -q -m "데이터 갱신 $(date '+%Y-%m-%d %H:%M')"
 git push
-echo "푸시 완료 — https://jwk490-cell.github.io/research-desk/"
+echo "푸시 완료 — https://kinjeongone0302-arch.github.io/research-desk/"

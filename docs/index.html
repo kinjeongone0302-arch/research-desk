@@ -129,11 +129,8 @@ svg{display:block;width:100%;overflow:visible}
   <nav id="nav">
     <div class="sbrand"><b>Research Desk</b><span>크레딧 · 수주 리서치 데스크</span></div>
     <button class="navitem on" data-tab="home">홈</button>
-    <div class="navgroup">크레딧 (CDS)</div>
+    <div class="navgroup">크레딧</div>
     <button class="navitem" data-tab="ai">AI 크레딧 <small>DTCC</small></button>
-    <button class="navitem" data-tab="sov">국가 CDS</button>
-    <button class="navitem" data-tab="idx">지수 CDS</button>
-    <button class="navitem" data-tab="krcredit">국내 크레딧</button>
     <button class="navitem" data-tab="bond">회사채 스프레드 <small>OAS</small></button>
     <div class="navgroup">기업</div>
     <button class="navitem" data-tab="co">기업 분석 <small>DART·EDGAR</small></button>
@@ -146,7 +143,7 @@ svg{display:block;width:100%;overflow:visible}
   <main>
     <section class="panel on" id="tab-home">
       <div class="ptitle">Research Desk</div>
-      <div class="pdesc">공개 공시만으로 만든 크레딧·수주 데스크 — CDS 는 DTCC 스왑 체결 공시 역산, 수주잔고는 DART 정기보고서 원문 파싱.</div>
+      <div class="pdesc">AI 캐펙스 크레딧 · 회사채 스프레드 · 수주잔고 · 기업 재무 — 전부 공개 공시에서 뽑아낸다.</div>
       <div class="cards" id="homeCards"></div>
       <div class="sec">AI 캐펙스 크레딧 <small>5Y CDS · 최근 체결 기준</small></div>
       <div class="box"><div id="homeAI"></div></div>
@@ -156,7 +153,7 @@ svg{display:block;width:100%;overflow:visible}
 
     <section class="panel" id="tab-ai">
       <div class="ptitle">AI 크레딧</div>
-      <div class="pdesc">AI 투자를 부채로 조달하는 기업들의 5년 CDS. 오라클은 이 데이터셋 전체에서 체결이 가장 많은 기업 단일물이다 — 시장이 AI 캐펙스 신용위험을 재는 대표 창구.</div>
+      <div class="pdesc">AI 투자를 부채로 조달하는 기업들의 5년 CDS. 오라클은 DTCC 공시 전체에서 체결이 가장 많은 기업 단일물이다 — 시장이 AI 캐펙스 신용위험을 재는 대표 창구. 회색 점선은 CDX 지수(시장 전체 기준선).</div>
       <div class="cards" id="aiCards"></div>
       <div class="split">
         <div class="chartbox"><h4 id="aiChartTitle">추이</h4><p id="aiChartSub"></p><div id="aiChart"></div></div>
@@ -166,33 +163,11 @@ svg{display:block;width:100%;overflow:visible}
       <div class="box"><div id="aiTable"></div></div>
     </section>
 
-    <section class="panel" id="tab-sov">
-      <div class="ptitle">국가 CDS</div>
-      <div class="pdesc">국가 신용부도스왑 5년물. 한국물은 하루 1~3건 체결되며, 체결이 없는 날은 앞뒤 만기로 보간한다.</div>
-      <div class="cards" id="sovCards"></div>
-      <div class="split">
-        <div class="chartbox"><h4 id="sovChartTitle">추이</h4><p id="sovChartSub"></p><div id="sovChart"></div></div>
-        <div class="chartbox"><h4>만기별 커브</h4><p>최근 45일 체결 중앙값</p><div id="sovCurve"></div></div>
-      </div>
-      <div class="sec">전체</div>
-      <div class="box"><div id="sovTable"></div></div>
-    </section>
+    
 
-    <section class="panel" id="tab-idx">
-      <div class="ptitle">지수 CDS</div>
-      <div class="pdesc">CDX·iTraxx 지수물. 지수 계약은 체결 스프레드가 공시에 그대로 실려 역산이 필요 없다 — 단일물 역산값을 검증하는 기준선으로 쓴다.</div>
-      <div class="cards" id="idxCards"></div>
-      <div class="chartbox"><h4 id="idxChartTitle">추이</h4><p id="idxChartSub"></p><div id="idxChart"></div></div>
-      <div class="sec">전체</div>
-      <div class="box"><div id="idxTable"></div></div>
-    </section>
+    
 
-    <section class="panel" id="tab-krcredit">
-      <div class="ptitle">국내 크레딧</div>
-      <div class="pdesc">국내 기업·정책금융 달러 CDS. 체결이 드물어 시계열보다 최근 체결 자체를 본다.</div>
-      <div class="box"><div id="krTable"></div></div>
-      <div class="note" id="krNote"></div>
-    </section>
+    
 
     <section class="panel" id="tab-bond">
       <div class="ptitle">회사채 스프레드</div>

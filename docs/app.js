@@ -181,7 +181,7 @@ Promise.all([
 });
 
 /* ═══════════ CDS 표 ═══════════ */
-const SEL = { ai: null, sov: null, idx: null };
+const SEL = { ai: null };
 
 function cdsRows(group, keys) {
   return keys.map(n => {
@@ -364,10 +364,7 @@ function renderHome() {
   const c = $('#homeCards');
   const out = [];
   if (CDS) {
-    const kr = CDS.sovereigns['한국'], or = CDS.ai && CDS.ai['Oracle'], ms = CDS.ai && CDS.ai['Microsoft'];
-    if (kr) { const m = chg(kr.series, 30); out.push(`<div class="card"><div class="k">한국 국가 CDS <span class="pill">5Y</span></div>
-      <div class="v num">${bp(kr.last_bp)}<em>bp</em></div><div class="d num ${cls(m)}">${sgn(m)}bp <span style="color:var(--faint);font-weight:600">1개월</span></div>
-      <div class="n">최근 체결 ${dayfmt(kr.last)}</div></div>`); }
+    const or = CDS.ai && CDS.ai['Oracle'], ms = CDS.ai && CDS.ai['Microsoft'];
     if (or) { const m = chg(or.series, 30); out.push(`<div class="card"><div class="k">오라클 <span class="pill">AI 캐펙스</span></div>
       <div class="v num">${bp(or.last_bp)}<em>bp</em></div><div class="d num ${cls(m)}">${sgn(m)}bp <span style="color:var(--faint);font-weight:600">1개월</span></div>
       <div class="n">체결 ${or.trades.toLocaleString()}건 — 기업 단일물 최다</div></div>`); }
@@ -430,12 +427,18 @@ function renderMethod() {
     <h4>검증</h4>
     호가가 실린 날의 딜러 값과 같은 날 역산값을 맞대보면 절대오차 중앙값이
     <b>마이크로소프트 0.5bp · Meta 0.5 · NVIDIA 0.7 · 브로드컴 0.6 · 알파벳 0.7 · 오라클 7.5bp</b> 다.
-    지수 CDS 도 기준선이 된다 — 다만 CDX.NA.HY 는 스프레드가 아니라 가격(100 기준)으로 호가되는데
+    지수 CDS(CDX·iTraxx) 도 기준선이 된다 — 지수물은 체결 스프레드가 공시에 직접 실려 역산이 필요 없다.
+    차트의 회색 점선이 그것이다. 다만 CDX.NA.HY 는 스프레드가 아니라 가격(100 기준)으로 호가되는데
     공시는 그 값을 같은 칸에 넣는다. 108 처럼 보이지만 가격 107.9 이고, 쿠폰 500bp 로 되돌리면 301bp 다.
-    국가별 서열(한국 &lt; 일본 &lt; 중국 &lt; 필리핀 &lt; 브라질 &lt; 튀르키예)도 시장 통념과 일치한다.
+    <h4>같은 날 여러 건을 함께 쓴다</h4>
+    하루에 딜러 호가가 1건뿐인 날이 많다. 그 1건만 쓰면 그날 값이 통째로 튀므로, 같은 날 업프론트
+    체결(보통 5~8건)을 함께 놓고 중앙값을 낸다. 또 '5Y' 로 묶은 구간이 실제로는 4.5~5.6Y 라
+    그날 어느 만기가 거래됐느냐만으로 몇 bp 씩 달라진다 — 종목별 커브 기울기로 정확히 5Y 로 환산한 뒤
+    집계한다. 마지막으로 앞뒤 관측과 동떨어진 하루짜리 값은 버린다.
     <h4>한계</h4>
-    체결 기반이라 <b>호가가 아니다</b>. 한국물은 하루 1~3건이고 아예 없는 날도 있다. 종가 기준 공식 시세와는
-    다르며, 수준과 방향을 보는 용도다. 국내 기업 단일물은 체결이 훨씬 드물어 시계열보다 체결 내역 자체를 본다.
+    체결 기반이라 <b>종가 호가가 아니다</b>. 하루 중 거래된 값들의 중앙값이라 장중 변동이 그대로 들어온다.
+    엔비디아 기준 하루 변동 중앙값이 2bp 남짓인데, 이건 잡음이 아니라 실제 움직임이다
+    (2026-08-10 에는 같은 날 체결이 74bp 에서 80bp 로 벌어졌다가 다음날 되돌아왔다).
     <h4>회사채 스프레드</h4>
     ICE BofA 등급별 지수 OAS(FRED)와 미 재무부 일별 금리곡선. 둘 다 인증이 필요 없다.
     OAS 는 같은 만기 국채 대비 초과수익률이라 <b>CDS 와 정의가 다르다</b> — CDS 는 부도보험 요율이다.
@@ -462,34 +465,13 @@ function renderMethod() {
 }
 
 function render() {
-  if (CDS) {
-    renderCdsGroup('ai', CDS.ai || {}, Object.keys(CDS.ai || {}), 4);
-    renderCdsGroup('sov', CDS.sovereigns || {}, Object.keys(CDS.sovereigns || {}), 4);
-    renderCdsGroup('idx', CDS.indices || {}, Object.keys(CDS.indices || {}), 4);
-    renderKr();
-  }
+  if (CDS) renderCdsGroup('ai', CDS.ai || {}, Object.keys(CDS.ai || {}), 4);
   renderBacklog();
   renderBond();
   renderHome();
   renderMethod();
 }
 
-function renderKr() {
-  const g = CDS.corps || {};
-  const rows = Object.entries(g).map(([n, v]) => ({ name: n, ...v })).filter(r => r.recent && r.recent.length);
-  if (!rows.length) { $('#krTable').innerHTML = '<div class="empty"><b>최근 체결이 없습니다</b>국내 기업 단일물은 체결이 매우 드뭅니다</div>'; return; }
-  rows.sort((a, b) => b.trades - a.trades);
-  $('#krTable').innerHTML = `<table><thead><tr><th>대상</th><th>최근 5Y (bp)</th><th>체결</th><th>최근 체결일</th><th>최근 만기</th></tr></thead>
-    <tbody>${rows.map(r => {
-      const t = r.recent[0];
-      return `<tr style="cursor:default"><td class="nm">${esc(r.name)}</td>
-        <td class="num" style="font-weight:800">${r.last_bp != null ? bp(r.last_bp) : bp(t.bp)}</td>
-        <td class="num">${r.trades.toLocaleString()}</td>
-        <td class="num" style="color:var(--faint)">${dayfmt(t.date)}</td>
-        <td class="num" style="color:var(--faint)">${t.maturity} <span class="sb">${t.tenor.toFixed(1)}Y</span></td></tr>`;
-    }).join('')}</tbody></table>`;
-  $('#krNote').innerHTML = '국내 기업 달러 CDS 는 체결이 드물어(대부분 20개월간 수십 건) 일별 시세로 보기 어렵다. 표의 값은 가장 최근 체결에서 역산한 수준이다.';
-}
 
 window.addEventListener('hashchange', () => openTab(location.hash.slice(1) || 'home'));
 

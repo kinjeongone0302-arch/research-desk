@@ -27,7 +27,7 @@ git push -u origin main
 ```
 
 그다음 레포 Settings → Pages → Source: `main` 브랜치, Folder: `/docs`.
-주소는 `https://jwk490-cell.github.io/research-desk/`.
+주소는 `https://kinjeongone0302-arch.github.io/research-desk/`.
 
 이후 갱신은 한 줄이다.
 

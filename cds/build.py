@@ -21,41 +21,6 @@ from price import branches, _solve
 OUT = Path(__file__).resolve().parents[1] / "docs" / "data" / "cds.json"
 
 # 표시명 → 공시 표기 정규식. DTCC 는 대소문자·표기가 제각각이라 정규식으로 묶는다.
-SOVEREIGN = {
-    "한국":       r"republic of korea",
-    "중국":       r"people'?s republic of china",
-    "일본":       r"^japan$",
-    "인도네시아": r"republic of indonesia",
-    "필리핀":     r"republic of the philippines",
-    "말레이시아": r"^malaysia$",
-    "베트남":     r"socialist republic of viet\s?nam",
-    "인도":       r"republic of india",
-    "태국":       r"kingdom of thailand",
-    "브라질":     r"federative republic of brazil",
-    "멕시코":     r"united mexican states",
-    "튀르키예":   r"republic of t(ur|ür)key|republic of turkiye",
-    "남아공":     r"republic of south africa",
-    "사우디":     r"kingdom of saudi arabia",
-}
-
-KOREA_CREDIT = {
-    "SK하이닉스":   r"sk\s?hynix",
-    "LG화학":       r"lg\s?chem",
-    "POSCO홀딩스":  r"posco",
-    "산업은행":     r"korea development bank",
-    "수출입은행":   r"export-?import bank of korea",
-    "LH":           r"korea land\s?&?\s?housing",
-    "한국전력":     r"korea electric power",
-    "가스공사":     r"korea gas",
-    "현대차":       r"hyundai motor",
-    "기아":         r"^kia\b",
-    "삼성전자":     r"samsung electronics",
-    "신한은행":     r"shinhan bank",
-    "국민은행":     r"kookmin bank",
-    "우리은행":     r"woori bank",
-    "하나은행":     r"hana bank",
-}
-
 # AI 캐펙스를 부채로 조달하는 크레딧. Oracle 은 이 데이터셋 전체에서 체결이 가장 많은
 # 기업 단일물이다(최근 130영업일 995건) — AI 투자 사이클의 신용위험 게이지로 쓰인다.
 AI_CREDIT = {
@@ -123,7 +88,6 @@ MIN_QUOTES_FOR_BRANCH = 5
 
 def collect():
     """공시 zip 전체를 훑어 관심 대상만 뽑는다. 단일물은 역산, 지수물은 공시 스프레드 사용."""
-    sov, corp = compile_map(SOVEREIGN), compile_map(KOREA_CREDIT)
     ai, idx = compile_map(AI_CREDIT), compile_map(INDEX)
     single, index_rows = [], []
     tally = defaultdict(lambda: [0, 0])       # 종목 → [low 에서만 풀림, high 에서만 풀림]
@@ -156,7 +120,7 @@ def collect():
 
             if "SN" not in t["fisn"]:
                 continue
-            label = match(t["entity"], sov) or match(t["entity"], corp) or match(t["entity"], ai)
+            label = match(t["entity"], ai)
             if not label:
                 continue
             if not (t["upfront"] and t["notional"] and t["notional"] >= 1e5):
@@ -169,12 +133,10 @@ def collect():
                 continue
             seen.add(key)
 
-            kind = ("sov" if label in SOVEREIGN
-                    else "kr" if label in KOREA_CREDIT else "ai")
 
             # 단일물의 약 4분의 1은 딜러 호가가 스프레드 칸에 그대로 실린다. 있으면 역산하지 않는다.
             if t["spread"] is not None:
-                single.append({"name": label, "kind": kind, "date": t["exec"],
+                single.append({"name": label, "date": t["exec"],
                                "maturity": t["maturity"], "tenor": t["tenor"],
                                "bucket": bucket(t["tenor"]), "src": "quoted",
                                "_lo": t["spread"] * 1e4, "_hi": t["spread"] * 1e4,
@@ -190,7 +152,7 @@ def collect():
                 continue
             if ok_lo != ok_hi:
                 tally[label][0 if ok_lo else 1] += 1
-            single.append({"name": label, "kind": kind, "coupon": coupon, "src": "derived",
+            single.append({"name": label, "coupon": coupon, "src": "derived",
                            "date": t["exec"], "maturity": t["maturity"], "tenor": t["tenor"],
                            "bucket": bucket(t["tenor"]),
                            "_lo": lo * 1e4 if ok_lo else None,
@@ -328,6 +290,46 @@ def _smooth(series, cands, side_of_day, rounds=2):
             series[d] = (round(val, 2), series[d][1])
 
 
+def daily_from(trades, fallback):
+    """5Y 환산 체결로 일별 값을 다시 만든다.
+
+    호가만 쓰면 안 된다. 하루에 호가가 1건뿐인 날이 많은데(엔비디아는 대부분 그렇다)
+    그 1건이 튀면 그날 값이 통째로 튄다 — 정작 같은 날 업프론트 체결이 5~8건씩 더 있다.
+    호가와 역산값을 함께 놓고 중앙값을 내면 그런 한 건짜리 이상치가 눌린다.
+    (역산값은 호가 대비 절대오차 중앙값 0.5~0.7bp 라 섞어도 무방하다.)
+    """
+    by_day = defaultdict(list)
+    for t in trades:
+        if ADJ_TENOR[0] <= t["tenor"] <= ADJ_TENOR[1]:
+            by_day[t["date"]].append(t)
+    out = {}
+    for d, ts in by_day.items():
+        vals = [t["bp"] for t in ts]
+        has_q = any(t.get("src") == "quoted" for t in ts)
+        out[d] = (round(statistics.median(vals), 2), "quoted" if has_q else "derived")
+    # 5Y 근처 체결이 아예 없던 날(보간으로 채웠던 날)은 기존 값을 남긴다
+    for d, v in fallback.items():
+        out.setdefault(d, v)
+    out = dict(sorted(out.items()))
+    _despike(out)
+    return out
+
+
+def _despike(series, window=4, tol=0.45):
+    """이웃과 동떨어진 하루짜리 값을 버린다. 재집계 과정에서 다시 생길 수 있어 한 번 더 훑는다."""
+    days = sorted(series)
+    drop = []
+    for i, d in enumerate(days):
+        near = [series[x][0] for x in days[max(0, i - window):i + window + 1] if x != d]
+        if len(near) < 4:
+            continue
+        ref = statistics.median(near)
+        if ref > 0 and abs(series[d][0] - ref) > max(tol * ref, 60):
+            drop.append(d)
+    for d in drop:
+        del series[d]
+
+
 def apply_side(rows, side_of_day, seed="low"):
     """확정된 분기로 각 체결의 스프레드를 정한다 (커브·최근체결 표시에 쓴다)."""
     out = []
@@ -338,6 +340,51 @@ def apply_side(rows, side_of_day, seed="low"):
             continue
         out.append({**{k: v for k, v in r.items() if not k.startswith("_")},
                     "bp": round(bp, 2)})
+    return out
+
+
+# 5Y 라고 묶은 구간이 실제로는 4.5~5.6Y 다. 크레딧 커브가 우상향이라 그날 어느 만기가
+# 거래됐느냐에 따라 값이 몇 bp 씩 달라진다 — 시장이 움직인 게 아닌데 움직인 것처럼 보인다.
+# (Meta 2026-05-06: 4.62Y 64.2bp vs 5.12Y 71.5bp, 같은 날 7bp 차이)
+# 그래서 종목별 커브 기울기를 구해 모든 체결을 정확히 5Y 로 환산한 뒤 집계한다.
+SLOPE_WINDOW = 45          # 기울기 추정 구간(일)
+SLOPE_RANGE = (-10.0, 40.0)   # bp/년. 정상 크레딧 커브의 범위
+ADJ_TENOR = (3.5, 7.0)     # 이 밖의 만기는 5Y 로 끌어오지 않는다
+
+
+def _slope(pairs):
+    """(만기, bp) 목록에서 bp/년 기울기. 이상치에 강하도록 쌍별 기울기의 중앙값(Theil-Sen)."""
+    sl = []
+    for i in range(len(pairs)):
+        t1, v1 = pairs[i]
+        for t2, v2 in pairs[i + 1:]:
+            if abs(t2 - t1) >= 0.3:
+                sl.append((v2 - v1) / (t2 - t1))
+    if len(sl) < 5:
+        return None
+    return min(max(statistics.median(sl), SLOPE_RANGE[0]), SLOPE_RANGE[1])
+
+
+def to_5y(trades):
+    """각 체결을 5Y 환산값으로 바꿔 돌려준다. 기울기를 못 구하면 그대로 둔다."""
+    by_day = defaultdict(list)
+    for t in trades:
+        by_day[t["date"]].append(t)
+    days = sorted(by_day)
+    idx = {d: i for i, d in enumerate(days)}
+    out = []
+    for d in days:
+        lo = dt.date.fromisoformat(d) - dt.timedelta(days=SLOPE_WINDOW)
+        hi = dt.date.fromisoformat(d) + dt.timedelta(days=SLOPE_WINDOW)
+        win = [t for x in days if lo <= dt.date.fromisoformat(x) <= hi for t in by_day[x]
+               if 1.0 <= t["tenor"] <= 15.0]
+        sl = _slope([(t["tenor"], t["bp"]) for t in win])
+        for t in by_day[d]:
+            if sl is None or not ADJ_TENOR[0] <= t["tenor"] <= ADJ_TENOR[1]:
+                out.append(t)
+                continue
+            out.append({**t, "bp": round(t["bp"] + sl * (5.0 - t["tenor"]), 2),
+                        "adj": round(sl * (5.0 - t["tenor"]), 2)})
     return out
 
 
@@ -376,7 +423,8 @@ def main():
 
     def pack(name, rs, curve_days):
         series, side_of_day = resolve(rs, sides.get(name, "low"))
-        trades = apply_side(rs, side_of_day, sides.get(name, "low"))
+        trades = to_5y(apply_side(rs, side_of_day, sides.get(name, "low")))
+        series = daily_from(trades, series)
         crossed = len(set(side_of_day.values())) > 1
         return {
             "trades": len(trades),
@@ -389,20 +437,6 @@ def main():
             "last": max(series) if series else None,
             "last_bp": series[max(series)][0] if series else None,
         }
-
-    sovereigns = {}
-    for name in SOVEREIGN:
-        rs = by_name.get(name, [])
-        if rs:
-            d = pack(name, rs, 45)
-            d.pop("recent")
-            sovereigns[name] = d
-
-    corps = {}
-    for name in KOREA_CREDIT:
-        rs = by_name.get(name, [])
-        if rs:
-            corps[name] = pack(name, rs, 400)
 
     ai_out = {}
     for name in AI_CREDIT:
@@ -444,12 +478,12 @@ def main():
         "coverage": {"days": len(parse.all_days()) // 2,
                      "from": min(r["date"] for r in single) if single else None,
                      "to": max(r["date"] for r in single) if single else None},
-        "sovereigns": sovereigns, "corps": corps, "ai": ai_out, "indices": indices,
+        "ai": ai_out, "indices": indices,
     }
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(doc, ensure_ascii=False, separators=(",", ":")))
     print(f"→ {OUT}  ({OUT.stat().st_size/1024:.0f} KB)", file=sys.stderr)
-    for n, v in list(sovereigns.items()) + list(ai_out.items()):
+    for n, v in ai_out.items():
         print(f"  {n:12} {v['trades']:5d}건 (호가 {v['quoted']:4d})  5Y {v['last_bp']}bp"
               f"  [{v['branch']}]  ({v['last']})", file=sys.stderr)
 
