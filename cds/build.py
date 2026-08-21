@@ -18,7 +18,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import parse
 from price import branches, _solve
 
-OUT = Path(__file__).resolve().parents[1] / "site" / "data" / "cds.json"
+OUT = Path(__file__).resolve().parents[1] / "docs" / "data" / "cds.json"
 
 # 표시명 → 공시 표기 정규식. DTCC 는 대소문자·표기가 제각각이라 정규식으로 묶는다.
 SOVEREIGN = {

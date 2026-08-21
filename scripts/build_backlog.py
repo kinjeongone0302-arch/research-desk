@@ -8,7 +8,7 @@ import datetime as dt
 from pathlib import Path
 
 SRC = Path.home() / "backlog-bot" / "data.json"
-OUT = Path(__file__).resolve().parents[1] / "site" / "data" / "backlog.json"
+OUT = Path(__file__).resolve().parents[1] / "docs" / "data" / "backlog.json"
 
 
 def pct(cur, prev):

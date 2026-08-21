@@ -19,7 +19,7 @@ import dart
 import edgar
 import fetch_us
 
-SITE = BASE.parent / "site" / "data"
+SITE = BASE.parent / "docs" / "data"
 
 # DART 주요계정 이름 → 짧은 키
 KR_ACCT = {
@@ -95,7 +95,7 @@ def build_kr():
     profs = (dart.profiles(m, order=size) if dart.alive()
              else dart.profiles(m, budget=0))
 
-    out = BASE.parent / "site" / "data" / "fin" / "KR"
+    out = BASE.parent / "docs" / "data" / "fin" / "KR"
     out.mkdir(parents=True, exist_ok=True)
 
     index = []
@@ -130,7 +130,7 @@ def build_us():
     for (cik, period), vals in data.items():
         by_cik[cik][period] = vals
 
-    out = BASE.parent / "site" / "data" / "fin" / "US"
+    out = BASE.parent / "docs" / "data" / "fin" / "US"
     out.mkdir(parents=True, exist_ok=True)
 
     index = []

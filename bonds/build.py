@@ -8,7 +8,7 @@ BASE = Path(__file__).resolve().parent
 sys.path.insert(0, str(BASE))
 import fetch
 
-OUT = BASE.parent / "site" / "data" / "bonds.json"
+OUT = BASE.parent / "docs" / "data" / "bonds.json"
 KEEP_FROM = "2025-01-01"          # CDS 수집 범위와 맞춘다
 TENORS = ["1 Yr", "2 Yr", "3 Yr", "5 Yr", "7 Yr", "10 Yr", "20 Yr", "30 Yr"]
 

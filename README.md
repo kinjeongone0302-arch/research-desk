@@ -1,6 +1,7 @@
 # Research Desk
 
-공개 공시만으로 만든 크레딧·수주 대시보드. `site/` 를 정적 호스팅하면 끝이다.
+공개 공시만으로 만든 크레딧·수주·기업 대시보드. `docs/` 가 그대로 배포본이다
+(GitHub Pages 는 루트 또는 `/docs` 만 지원해서 폴더 이름을 거기 맞췄다).
 
 ```
 ./run.sh                 # 최근 14일치 갱신 + 재빌드
@@ -19,11 +20,11 @@ cds/     DTCC 공개 스왑 공시 → CDS 스프레드 역산
   raw/     받아둔 zip (날짜별, 재실행 시 건너뜀)
   parse.py 공시 CSV 정규화
   price.py ISDA 표준모형 근사 프라이서
-  build.py → site/data/cds.json
+  build.py → docs/data/cds.json
 scripts/
   fetch_dtcc.sh  수집
-  build_backlog.py  ~/backlog-bot/data.json → site/data/backlog.json
-site/    index.html + app.js + data/*.json
+  build_backlog.py  ~/backlog-bot/data.json → docs/data/backlog.json
+docs/    index.html + app.js + data/*.json  ← 배포본
 ```
 
 ## CDS 를 어떻게 뽑았나

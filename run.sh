@@ -31,4 +31,4 @@ python3 fin/build.py
 python3 fin/backfill_us.py     # frames 가 놓친 종목(비역년 결산·외국 발행사)만 개별 보완
 python3 fin/build.py           # 보완분을 인덱스에 반영
 
-echo "완료 — site/ 를 정적 호스팅하면 된다"
+echo "완료 — docs/ 가 배포본 (GitHub Pages: Settings → Pages → /docs)"

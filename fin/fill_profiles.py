@@ -9,7 +9,7 @@ BASE = Path(__file__).resolve().parent
 sys.path.insert(0, str(BASE))
 import dart
 
-KR = BASE.parent / "site" / "data" / "fin" / "KR"
+KR = BASE.parent / "docs" / "data" / "fin" / "KR"
 
 
 def size_map():
