@@ -13,6 +13,28 @@ python3 cds/build.py --reuse   # 파싱 결과 재사용 (역산 로직만 손�
 CDS 파싱·역산은 852개 zip 전체를 훑어 1~2분 걸린다. 결과는 `cds/trades_cache.json` 에
 남으므로, 집계 로직만 고칠 때는 `--reuse` 로 즉시 돌린다.
 
+## 배포
+
+`docs/` 가 그대로 배포본이다. GitHub Pages 는 루트 또는 `/docs` 만 서빙하므로 폴더 이름을 거기 맞췄다.
+
+첫 배포 — GitHub 에서 빈 레포(`research-desk`) 를 만든 뒤 **직접** 푸시한다.
+이 맥에는 git 인증정보가 없어서 아래 명령이 사용자 이름과 토큰을 물어본다
+(비밀번호 자리에 Personal Access Token 을 넣으면 keychain 에 저장된다).
+
+```
+cd ~/research-desk
+git push -u origin main
+```
+
+그다음 레포 Settings → Pages → Source: `main` 브랜치, Folder: `/docs`.
+주소는 `https://jwk490-cell.github.io/research-desk/`.
+
+이후 갱신은 한 줄이다.
+
+```
+./deploy.sh
+```
+
 ## 구성
 
 ```
