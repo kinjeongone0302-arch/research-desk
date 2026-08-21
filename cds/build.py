@@ -24,21 +24,16 @@ OUT = Path(__file__).resolve().parents[1] / "docs" / "data" / "cds.json"
 # AI 캐펙스를 부채로 조달하는 크레딧. Oracle 은 이 데이터셋 전체에서 체결이 가장 많은
 # 기업 단일물이다(최근 130영업일 995건) — AI 투자 사이클의 신용위험 게이지로 쓰인다.
 AI_CREDIT = {
-    "Oracle":      r"^oracle (corp|cop)|^orcl cds",
-    "CoreWeave":   r"^coreweave[;,. ]*(inc|corp)?\.?$|^coreweave cds",
-    "SoftBank":    r"^softbank( group)?( corp)?\.?$",
-    "Meta":        r"^meta platforms",
-    "Microsoft":   r"^microsoft( corp)?",
-    "Alphabet":    r"^alphabet inc",
-    "Amazon":      r"^amazon\.com",
-    "Broadcom":    r"^broadcom inc",
-    "NVIDIA":      r"^nvidia corp",
-    "Dell":        r"^dell (inc|technologies)|^dell cds",
-    "Intel":       r"^intel corp|^intel cds",
-    "Vistra":      r"^vistra operations",
-    "NRG":         r"^nrg energy|^nrg cds",
-    "Constellation": r"^constellation energy generation",
+    "Oracle":    r"^oracle (corp|cop)|^orcl cds",
+    "CoreWeave": r"^coreweave[;,. ]*(inc|corp)?\.?$|^coreweave cds",
+    "NVIDIA":    r"^nvidia corp",
+    "Meta":      r"^meta platforms",
+    "Microsoft": r"^microsoft( corp)?",
+    "Alphabet":  r"^alphabet inc",
+    "Amazon":    r"^amazon\.com",
 }
+# 네비우스는 DTCC 20개월치에 단일물 CDS 체결이 0건이다(전환사채 위주라 CDS 시장이 없다).
+# 애플은 47건뿐이라 시계열이 서지 않는다. 둘 다 넣지 않았다.
 
 INDEX = {
     "CDX IG":            r"^cdx\.na\.ig",
