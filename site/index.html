@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Research Desk</title>
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.css">
+<style>
+:root{
+  --bg:#f2f4f6; --surface:#ffffff; --line:#e7eaee; --line2:#eef0f3;
+  --text:#191f28; --sub:#4e5968; --faint:#8b95a1;
+  --accent:#3168f0; --accent-soft:rgba(49,104,240,.08); --accent-line:rgba(49,104,240,.28);
+  --up:#f04452; --down:#3485fa; --warn:#f5a623;
+  --surface2:#f2f4f6; --hover:#f2f4f6;
+  --shadow:0 1px 3px rgba(25,31,40,.04); --shadow-hover:0 4px 16px rgba(25,31,40,.08);
+}
+html.dark{
+  --bg:#101014; --surface:#1a1b20; --line:#272930; --line2:#232530;
+  --text:#e9ebee; --sub:#9aa2ad; --faint:#6d7480;
+  --accent:#4d7df5; --accent-soft:rgba(77,125,245,.14); --accent-line:rgba(77,125,245,.4);
+  --up:#ff5c68; --down:#4d94ff; --warn:#ffb84d;
+  --surface2:#232530; --hover:#232530;
+  --shadow:0 1px 3px rgba(0,0,0,.3); --shadow-hover:0 4px 16px rgba(0,0,0,.4);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+*,*::before,*::after{font-family:"Pretendard Variable",Pretendard,"Malgun Gothic","Segoe UI",-apple-system,sans-serif}
+html,body{height:100%}
+body{background:var(--bg);color:var(--text);font-size:14px;display:flex;flex-direction:column;-webkit-font-smoothing:antialiased}
+a{color:var(--accent);text-decoration:none}
+.num{font-variant-numeric:tabular-nums}
+
+header{display:flex;align-items:center;gap:12px;padding:0 24px;height:58px;flex:none;background:var(--bg);position:sticky;top:0;z-index:30}
+.brand{font-size:16px;font-weight:800;letter-spacing:-.02em}
+.brand span{font-weight:600;color:var(--faint);font-size:12px;margin-left:8px}
+.spacer{flex:1}
+.hbtn{border:1px solid var(--line);background:var(--surface);color:var(--sub);font-family:inherit;font-size:13px;font-weight:600;padding:7px 14px;border-radius:999px;cursor:pointer}
+.hbtn:hover{color:var(--text);border-color:var(--faint)}
+#menuBtn{display:none}
+
+.layout{display:flex;flex:1;min-height:0}
+nav{width:214px;flex:none;padding:4px 12px 40px;overflow-y:auto}
+.sbrand{padding:8px 12px 14px}
+.sbrand b{display:block;font-size:13px;font-weight:800}
+.sbrand span{font-size:11px;color:var(--faint)}
+.navgroup{font-size:11px;font-weight:700;color:var(--faint);padding:16px 12px 6px;letter-spacing:.02em}
+.navitem{display:block;width:100%;text-align:left;border:0;background:none;color:var(--sub);font-family:inherit;font-size:13.5px;font-weight:600;padding:8px 12px;border-radius:10px;cursor:pointer}
+.navitem:hover{background:var(--hover);color:var(--text)}
+.navitem.on{background:var(--accent-soft);color:var(--accent)}
+.navitem small{font-weight:600;color:var(--faint);font-size:10.5px;margin-left:5px}
+
+main{flex:1;min-width:0;overflow-y:auto;padding:4px 28px 64px}
+.panel{display:none}
+.panel.on{display:block}
+.ptitle{font-size:21px;font-weight:800;letter-spacing:-.02em;margin:6px 0 4px}
+.pdesc{font-size:12.5px;color:var(--faint);margin-bottom:20px;line-height:1.6}
+
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;margin-bottom:26px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px 18px;box-shadow:var(--shadow);text-align:left}
+.card .k{font-size:12px;color:var(--faint);font-weight:600;display:flex;align-items:center;gap:6px}
+.card .v{font-size:26px;font-weight:800;letter-spacing:-.03em;margin-top:7px}
+.card .v em{font-style:normal;font-size:13px;font-weight:700;color:var(--faint);margin-left:3px}
+.card .d{font-size:12px;font-weight:700;margin-top:4px}
+.card .n{font-size:11px;color:var(--faint);margin-top:7px;line-height:1.5}
+.up{color:var(--up)} .down{color:var(--down)} .flat{color:var(--faint)}
+
+.sec{margin:30px 0 12px;font-size:14.5px;font-weight:800;display:flex;align-items:baseline;gap:9px}
+.sec small{font-size:11.5px;font-weight:600;color:var(--faint)}
+
+.box{background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);overflow:hidden}
+.box+.box{margin-top:14px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{font-size:11.5px;font-weight:700;color:var(--faint);text-align:right;padding:11px 14px;border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+td{padding:10px 14px;text-align:right;border-bottom:1px solid var(--line2);white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+tbody tr{cursor:pointer}
+tbody tr:hover{background:var(--hover)}
+tbody tr.on{background:var(--accent-soft)}
+.nm{font-weight:700}
+.sb{font-size:11px;color:var(--faint);font-weight:600;margin-left:6px}
+.pill{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:6px;background:var(--surface2);color:var(--sub)}
+
+input.search{width:100%;padding:12px 16px;border-radius:13px;border:1px solid var(--line);background:var(--surface);color:var(--text);font:inherit;font-size:14px;outline:none;box-shadow:var(--shadow)}
+input.search:focus{border-color:var(--accent-line)}
+.searchwrap{position:relative;max-width:460px;margin-bottom:8px}
+.drop{position:absolute;top:100%;left:0;right:0;z-index:40;background:var(--surface);border:1px solid var(--line);border-radius:13px;margin-top:6px;box-shadow:var(--shadow-hover);max-height:340px;overflow-y:auto;display:none}
+.drop.on{display:block}
+.dropitem{padding:10px 15px;cursor:pointer;display:flex;align-items:center;gap:8px;font-size:13.5px}
+.dropitem:hover,.dropitem.hi{background:var(--accent-soft)}
+.dropitem b{font-weight:700}
+.dropitem span{font-size:11.5px;color:var(--faint)}
+.dropitem .r{margin-left:auto;font-size:12px;font-weight:700}
+
+.split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
+@media(max-width:1080px){.split{grid-template-columns:1fr}}
+.chartbox{background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:16px 18px 10px}
+.chartbox h4{font-size:13px;font-weight:800;margin-bottom:2px}
+.chartbox p{font-size:11.5px;color:var(--faint);margin-bottom:10px}
+svg{display:block;width:100%;overflow:visible}
+.empty{padding:48px 20px;text-align:center;color:var(--faint);font-size:13px;line-height:1.9}
+.empty b{display:block;font-size:14.5px;font-weight:700;color:var(--sub);margin-bottom:5px}
+.note{font-size:11.5px;color:var(--faint);line-height:1.85;margin-top:12px}
+.note code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:11px}
+.meth{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px 22px;font-size:13px;line-height:1.95;color:var(--sub);box-shadow:var(--shadow)}
+.meth h4{font-size:13.5px;font-weight:800;color:var(--text);margin:18px 0 6px}
+.meth h4:first-child{margin-top:0}
+.meth code{background:var(--surface2);padding:1px 6px;border-radius:5px;font-size:12px}
+.meth ul{margin:4px 0 0 18px}
+.meth li{margin:3px 0}
+
+@media(max-width:820px){
+  nav{position:fixed;left:0;top:58px;bottom:0;background:var(--bg);z-index:25;transform:translateX(-100%);transition:transform .18s;border-right:1px solid var(--line)}
+  nav.open{transform:none}
+  #menuBtn{display:block}
+  main{padding:4px 16px 64px}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <button class="hbtn" id="menuBtn" type="button">☰</button>
+  <div class="brand">Research Desk<span id="stamp">불러오는 중…</span></div>
+  <div class="spacer"></div>
+  <button class="hbtn" id="themeToggle" type="button">라이트 모드</button>
+</header>
+
+<div class="layout">
+  <nav id="nav">
+    <div class="sbrand"><b>Research Desk</b><span>크레딧 · 수주 리서치 데스크</span></div>
+    <button class="navitem on" data-tab="home">홈</button>
+    <div class="navgroup">크레딧 (CDS)</div>
+    <button class="navitem" data-tab="ai">AI 크레딧 <small>DTCC</small></button>
+    <button class="navitem" data-tab="sov">국가 CDS</button>
+    <button class="navitem" data-tab="idx">지수 CDS</button>
+    <button class="navitem" data-tab="krcredit">국내 크레딧</button>
+    <button class="navitem" data-tab="bond">회사채 스프레드 <small>OAS</small></button>
+    <div class="navgroup">기업</div>
+    <button class="navitem" data-tab="co">기업 분석 <small>DART·EDGAR</small></button>
+    <div class="navgroup">수주</div>
+    <button class="navitem" data-tab="backlog">수주잔고 <small>DART</small></button>
+    <div class="navgroup">참고</div>
+    <button class="navitem" data-tab="method">산출 방법</button>
+  </nav>
+
+  <main>
+    <section class="panel on" id="tab-home">
+      <div class="ptitle">Research Desk</div>
+      <div class="pdesc">공개 공시만으로 만든 크레딧·수주 데스크 — CDS 는 DTCC 스왑 체결 공시 역산, 수주잔고는 DART 정기보고서 원문 파싱.</div>
+      <div class="cards" id="homeCards"></div>
+      <div class="sec">AI 캐펙스 크레딧 <small>5Y CDS · 최근 체결 기준</small></div>
+      <div class="box"><div id="homeAI"></div></div>
+      <div class="sec">수주잔고 급증 <small>직전 공시 기준 전년동기비 상위</small></div>
+      <div class="box"><div id="homeBacklog"></div></div>
+    </section>
+
+    <section class="panel" id="tab-ai">
+      <div class="ptitle">AI 크레딧</div>
+      <div class="pdesc">AI 투자를 부채로 조달하는 기업들의 5년 CDS. 오라클은 이 데이터셋 전체에서 체결이 가장 많은 기업 단일물이다 — 시장이 AI 캐펙스 신용위험을 재는 대표 창구.</div>
+      <div class="cards" id="aiCards"></div>
+      <div class="split">
+        <div class="chartbox"><h4 id="aiChartTitle">추이</h4><p id="aiChartSub"></p><div id="aiChart"></div></div>
+        <div class="chartbox"><h4>만기별 커브</h4><p>최근 90일 체결 중앙값</p><div id="aiCurve"></div></div>
+      </div>
+      <div class="sec">전체 <small>행을 누르면 차트가 바뀐다</small></div>
+      <div class="box"><div id="aiTable"></div></div>
+    </section>
+
+    <section class="panel" id="tab-sov">
+      <div class="ptitle">국가 CDS</div>
+      <div class="pdesc">국가 신용부도스왑 5년물. 한국물은 하루 1~3건 체결되며, 체결이 없는 날은 앞뒤 만기로 보간한다.</div>
+      <div class="cards" id="sovCards"></div>
+      <div class="split">
+        <div class="chartbox"><h4 id="sovChartTitle">추이</h4><p id="sovChartSub"></p><div id="sovChart"></div></div>
+        <div class="chartbox"><h4>만기별 커브</h4><p>최근 45일 체결 중앙값</p><div id="sovCurve"></div></div>
+      </div>
+      <div class="sec">전체</div>
+      <div class="box"><div id="sovTable"></div></div>
+    </section>
+
+    <section class="panel" id="tab-idx">
+      <div class="ptitle">지수 CDS</div>
+      <div class="pdesc">CDX·iTraxx 지수물. 지수 계약은 체결 스프레드가 공시에 그대로 실려 역산이 필요 없다 — 단일물 역산값을 검증하는 기준선으로 쓴다.</div>
+      <div class="cards" id="idxCards"></div>
+      <div class="chartbox"><h4 id="idxChartTitle">추이</h4><p id="idxChartSub"></p><div id="idxChart"></div></div>
+      <div class="sec">전체</div>
+      <div class="box"><div id="idxTable"></div></div>
+    </section>
+
+    <section class="panel" id="tab-krcredit">
+      <div class="ptitle">국내 크레딧</div>
+      <div class="pdesc">국내 기업·정책금융 달러 CDS. 체결이 드물어 시계열보다 최근 체결 자체를 본다.</div>
+      <div class="box"><div id="krTable"></div></div>
+      <div class="note" id="krNote"></div>
+    </section>
+
+    <section class="panel" id="tab-bond">
+      <div class="ptitle">회사채 스프레드</div>
+      <div class="pdesc">등급별 회사채 지수의 국채 대비 초과수익률(OAS)과 미 국채 금리곡선.
+        <b>CDS 와 정의가 달라 레벨을 맞대면 안 된다</b> — CDS 는 부도보험 요율, OAS 는 채권 수익률 차이다. 같은 지표끼리만 비교할 것.</div>
+      <div class="cards" id="bondCards"></div>
+      <div class="split">
+        <div class="chartbox"><h4 id="bondChartTitle">추이</h4><p id="bondChartSub"></p><div id="bondChart"></div></div>
+        <div class="chartbox"><h4>미 국채 금리곡선</h4><p id="ustSub"></p><div id="ustChart"></div></div>
+      </div>
+      <div class="sec">등급별 <small>행을 누르면 차트가 바뀐다</small></div>
+      <div class="box"><div id="bondTable"></div></div>
+      <div class="note" id="bondNote"></div>
+    </section>
+
+    <section class="panel" id="tab-co">
+      <div class="ptitle">기업 분석</div>
+      <div class="pdesc">티커나 종목명을 치면 개요와 재무제표가 나온다 — 국내는 DART 주요계정, 미국은 EDGAR XBRL.</div>
+      <div class="searchwrap">
+        <input class="search" id="coSearch" placeholder="티커 · 종목명 (예: 005930, 삼성전자, NVDA, Oracle)" autocomplete="off">
+        <div class="drop" id="coDrop"></div>
+      </div>
+      <div id="coMeta" class="note"></div>
+      <div id="coBody"></div>
+    </section>
+
+    <section class="panel" id="tab-backlog">
+      <div class="ptitle">수주잔고</div>
+      <div class="pdesc">DART 정기보고서 원문에서 파싱한 수주잔고. 종목명을 치면 바로 나온다.</div>
+      <div class="searchwrap">
+        <input class="search" id="blSearch" placeholder="종목명 또는 코드 (예: 한화에어로스페이스, 012450)" autocomplete="off">
+        <div class="drop" id="blDrop"></div>
+      </div>
+      <div id="blMeta" class="note"></div>
+      <div id="blBody"></div>
+    </section>
+
+    <section class="panel" id="tab-method">
+      <div class="ptitle">산출 방법</div>
+      <div class="pdesc">숫자가 어디서 나왔고 어디까지 믿을 수 있는지.</div>
+      <div class="meth" id="methBody"></div>
+    </section>
+  </main>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

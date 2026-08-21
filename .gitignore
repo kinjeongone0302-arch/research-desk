@@ -1,0 +1,8 @@
+# 수집 원본·캐시 — 재실행하면 다시 받는다 (합계 2GB 넘음)
+cds/raw/
+cds/trades_cache.json
+fin/cache/
+bonds/cache/
+*.log
+__pycache__/
+.DS_Store
