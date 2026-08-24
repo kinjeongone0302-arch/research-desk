@@ -748,3 +748,70 @@ function renderBond() {
 
   $('#bondNote').innerHTML = `${esc(BOND.source)} · 갱신 ${dayfmt((BOND.generated_at || '').slice(0, 10))}<br>${esc(BOND.note)}`;
 }
+
+/* ═══════════ 채널 아카이브 ═══════════ */
+let FEED = null, FDQ = '', FDTK = null, FDN = 60;
+
+function fdEnsure() {
+  if (FEED) return;
+  $('#fdMeta').textContent = '불러오는 중…';
+  fetch('data/channel.json?t=' + Date.now()).then(r => r.json()).then(d => {
+    FEED = d;
+    $('#fdMeta').innerHTML = `${esc(d.channel || '')} · 게시물 ${d.count.toLocaleString()}건 · `
+      + `이미지 ${d.images.toLocaleString()}장 · ${dayfmt(d.from)} ~ ${dayfmt(d.to)}`;
+    renderFeed();
+  }).catch(() => { $('#fdMeta').textContent = '아카이브를 불러오지 못했습니다'; });
+}
+
+function fdMatch(p) {
+  if (FDTK && !(p.k || []).includes(FDTK)) return false;
+  if (!FDQ) return true;
+  const q = FDQ.toLowerCase();
+  return (p.x || '').toLowerCase().includes(q) || (p.k || []).some(t => t.toLowerCase().includes(q));
+}
+
+function hl(text, q) {
+  const e = esc(text);
+  if (!q) return e;
+  const rx = new RegExp('(' + q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+  return e.replace(rx, '<mark>$1</mark>');
+}
+
+function renderFeed() {
+  if (!FEED) return;
+  const chips = $('#fdChips');
+  chips.innerHTML = `<button class="rbtn ${FDTK ? '' : 'on'}" data-tk="">전체</button>`
+    + FEED.mentions.slice(0, 20).map(m =>
+      `<button class="rbtn ${FDTK === m.t ? 'on' : ''}" data-tk="${esc(m.t)}" title="${esc(m.n)}">${esc(m.t)} ${m.c}</button>`).join('');
+  chips.querySelectorAll('[data-tk]').forEach(b => b.onclick = () => {
+    FDTK = b.dataset.tk || null; FDN = 60; renderFeed();
+  });
+
+  const hits = FEED.posts.filter(fdMatch);
+  const show = hits.slice(0, FDN);
+  const head = `<div class="note" style="margin:6px 0 12px">${hits.length.toLocaleString()}건`
+    + (FDTK ? ` · <b>${esc(FDTK)}</b> 언급` : '') + (FDQ ? ` · "${esc(FDQ)}" 포함` : '') + `</div>`;
+
+  $('#fdBody').innerHTML = head + (show.length ? show.map(p => `<div class="post">
+      <div class="ph"><span class="dt">${esc(p.t)}</span>
+        ${p.v ? `<span class="vw">👁 ${p.v.toLocaleString()}</span>` : ''}</div>
+      ${p.x ? `<div class="cap">${hl(p.x, FDQ)}</div>` : ''}
+      ${p.m ? `<div class="imgs"><img loading="lazy" src="media/${esc(p.m)}" data-z="media/${esc(p.m)}"></div>` : ''}
+      ${(p.k || []).length ? `<div class="tks">${p.k.map(t => `<span class="tk" data-go="${esc(t)}">${esc(t)}</span>`).join('')}</div>` : ''}
+    </div>`).join('')
+    : '<div class="empty"><b>일치하는 글이 없습니다</b>다른 말로 찾아보세요</div>')
+    + (hits.length > FDN ? `<button class="hbtn" id="fdMore" style="width:100%;margin-top:6px">더 보기 (${(hits.length - FDN).toLocaleString()}건 남음)</button>` : '');
+
+  const more = $('#fdMore');
+  if (more) more.onclick = () => { FDN += 60; renderFeed(); };
+  $('#fdBody').querySelectorAll('[data-go]').forEach(n => n.onclick = () => {
+    FDTK = n.dataset.go; FDN = 60; renderFeed(); window.scrollTo(0, 0);
+  });
+  $('#fdBody').querySelectorAll('[data-z]').forEach(n => n.onclick = () => {
+    const w = window.open('', '_blank');
+    if (w) w.document.write(`<img src="${location.href.split('#')[0].replace(/\/$/, '')}/${n.dataset.z}" style="max-width:100%">`);
+  });
+}
+
+$('#fdSearch').addEventListener('input', e => { FDQ = e.target.value.trim(); FDN = 60; renderFeed(); });
+document.querySelectorAll('.navitem[data-tab="feed"]').forEach(b => b.addEventListener('click', fdEnsure));
