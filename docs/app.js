@@ -749,6 +749,39 @@ function renderBond() {
   $('#bondNote').innerHTML = `${esc(BOND.source)} · 갱신 ${dayfmt((BOND.generated_at || '').slice(0, 10))}<br>${esc(BOND.note)}`;
 }
 
+
+/* 글이 수천 건이라 한 줄로 쭉 늘어놓으면 못 읽는다. 날짜로 묶어 접는다. */
+const WD = ['일', '월', '화', '수', '목', '금', '토'];
+
+/* 접힌 <details> 안의 lazy 이미지는 펼쳐도 로드가 안 걸리는 경우가 있다.
+   펼치는 순간 그 안의 이미지만 lazy 를 풀어준다. */
+function armLazy(root) {
+  root.querySelectorAll('details.daygrp').forEach(d => {
+    d.addEventListener('toggle', () => {
+      if (!d.open) return;
+      d.querySelectorAll('img[loading="lazy"]').forEach(im => im.removeAttribute('loading'));
+    });
+    if (d.open) d.querySelectorAll('img[loading="lazy"]').forEach(im => im.removeAttribute('loading'));
+  });
+}
+
+function dayGroups(posts, cardHtml, openFirst = 1) {
+  const g = [];
+  const idx = {};
+  for (const p of posts) {
+    const d = p.t.slice(0, 10);
+    if (!(d in idx)) { idx[d] = g.length; g.push([d, []]); }
+    g[idx[d]][1].push(p);
+  }
+  return g.map(([d, list], i) => {
+    const w = WD[new Date(d).getDay()];
+    return `<details class="daygrp"${i < openFirst ? ' open' : ''}>
+      <summary><span class="car">▶</span>${d.slice(2).replace(/-/g, '')} <span class="dw">(${w})</span>
+        <span class="dn">${list.length}건</span></summary>
+      <div class="daybody">${list.map(cardHtml).join('')}</div></details>`;
+  }).join('');
+}
+
 /* ═══════════ 채널 아카이브 ═══════════ */
 let FEED = null, FDQ = '', FDTK = null, FDN = 60, FDR = 0, FDVIEW = 'sum';
 const FDRANGES = [['1주', 7], ['1개월', 30], ['3개월', 0]];
@@ -850,17 +883,19 @@ function renderFeed() {
     + (FDTK ? ` · <b>${esc(FDTK)}</b>${nm[FDTK] ? ' (' + esc(nm[FDTK]) + ')' : ''} 언급` : '')
     + (FDQ ? ` · "${esc(FDQ)}" 포함` : '') + `</div>`;
 
-  $('#fdBody').innerHTML = head + (show.length ? show.map(p => `<div class="post">
-      <div class="ph"><span class="dt">${esc(p.t)}</span>
+  const card = p => `<div class="post">
+      <div class="ph"><span class="dt">${esc(p.t.slice(11))}</span>
         ${p.v ? `<span class="vw">👁 ${p.v.toLocaleString()}</span>` : ''}</div>
       ${p.x ? `<div class="cap">${hl(p.x, FDQ)}</div>` : ''}
       ${(p.m || []).length ? `<div class="imgs">${p.m.map((f, i) =>
         `<img loading="lazy" src="media/${esc(f)}" data-zi="${i}" data-zs="${esc(p.m.join(','))}">`).join('')}</div>` : ''}
       ${(p.k || []).length ? `<div class="tks">${p.k.map(t => `<span class="tk" data-go="${esc(t)}">${esc(t)}</span>`).join('')}</div>` : ''}
-    </div>`).join('')
+    </div>`;
+  $('#fdBody').innerHTML = head + (show.length ? dayGroups(show, card)
     : '<div class="empty"><b>일치하는 글이 없습니다</b>다른 말로 찾아보세요</div>')
     + (hits.length > FDN ? `<button class="hbtn" id="fdMore" style="width:100%;margin-top:6px">더 보기 (${(hits.length - FDN).toLocaleString()}건 남음)</button>` : '');
 
+  armLazy($('#fdBody'));
   const more = $('#fdMore');
   if (more) more.onclick = () => { FDN += 60; renderFeed(); };
   $('#fdBody').querySelectorAll('[data-go]').forEach(n => n.onclick = () => {
@@ -997,20 +1032,22 @@ function renderCafe() {
     + (CFST ? ` · <b>${esc(nm[CFST] || CFST)}</b> 언급 <span class="tk" data-clr="1">해제</span>` : '')
     + (CFQ ? ` · "${esc(CFQ)}" 포함` : '') + `</div>`;
 
-  $('#cfBody').innerHTML = head + (show.length ? show.map(p => `<div class="post">
-      <div class="ph"><span class="pill">${esc(p.b)}</span><span class="dt">${esc(p.t)}</span>
+  const ccard = p => `<div class="post">
+      <div class="ph"><span class="pill">${esc(p.b)}</span><span class="dt">${esc(p.t.slice(11))}</span>
         ${p.v ? `<span class="vw">👁 ${p.v.toLocaleString()}${p.c ? ' · 💬 ' + p.c : ''}</span>` : ''}</div>
       <div style="font-size:14.5px;font-weight:800;margin-bottom:8px">
         <a href="https://cafe.naver.com/${esc(CAFE.url)}/${p.id}" target="_blank" rel="noopener">${hl(p.s, CFQ)}</a></div>
       <div class="cap">${hl((p.x || '').slice(0, 2200), CFQ)}${(p.x || '').length > 2200 ? '\n…' : ''}</div>
       ${(p.m || []).length ? `<div class="imgs">${p.m.map((u, i) =>
-        `<img loading="lazy" src="${esc(u)}" data-czi="${i}" data-czs="${esc(p.m.join(' '))}">`).join('')}</div>` : ''}
+        `<img loading="lazy" src="cafemedia/${esc(u)}" data-czi="${i}" data-czs="${esc(p.m.join(' '))}">`).join('')}</div>` : ''}
       ${(p.k || []).length ? `<div class="tks">${p.k.slice(0, 24).map(c =>
         `<span class="tk" data-cgo="${esc(c)}">${esc(nm[c] || c)}</span>`).join('')}</div>` : ''}
-    </div>`).join('')
+    </div>`;
+  $('#cfBody').innerHTML = head + (show.length ? dayGroups(show, ccard)
     : '<div class="empty"><b>일치하는 글이 없습니다</b>다른 말로 찾아보세요</div>')
     + (hits.length > CFN ? `<button class="hbtn" id="cfMore" style="width:100%;margin-top:6px">더 보기 (${(hits.length - CFN).toLocaleString()}건 남음)</button>` : '');
 
+  armLazy($('#cfBody'));
   const more = $('#cfMore');
   if (more) more.onclick = () => { CFN += 30; renderCafe(); };
   $('#cfBody').querySelectorAll('[data-cgo]').forEach(n => n.onclick = () => {
@@ -1018,7 +1055,7 @@ function renderCafe() {
   });
   $('#cfBody').querySelectorAll('[data-clr]').forEach(n => n.onclick = () => { CFST = null; renderCafe(); });
   $('#cfBody').querySelectorAll('[data-czi]').forEach(n => n.onclick = () => {
-    lbOpen(n.dataset.czs.split(' '), +n.dataset.czi, true);
+    lbOpen(n.dataset.czs.split(' ').map(u => 'cafemedia/' + u), +n.dataset.czi, true);
   });
 }
 

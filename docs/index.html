@@ -85,6 +85,20 @@ tbody tr.on{background:var(--accent-soft)}
   font-size:11.5px;font-weight:700;padding:4px 9px;border-radius:8px;cursor:pointer}
 .rbtn:hover{color:var(--text);border-color:var(--faint)}
 .rbtn.on{background:var(--accent-soft);color:var(--accent);border-color:var(--accent-line)}
+.daygrp{margin-bottom:8px}
+.daygrp>summary{list-style:none;cursor:pointer;background:var(--surface);border:1px solid var(--line);
+  border-radius:14px;padding:13px 18px;display:flex;align-items:center;gap:10px;
+  font-size:14px;font-weight:700;box-shadow:var(--shadow);user-select:none}
+.daygrp>summary::-webkit-details-marker{display:none}
+.daygrp>summary:hover{border-color:var(--faint)}
+.daygrp>summary .dw{font-size:12px;font-weight:600;color:var(--faint)}
+.daygrp>summary .dn{margin-left:auto;font-size:11.5px;font-weight:700;color:var(--faint)}
+.daygrp>summary .car{color:var(--faint);font-size:11px;transition:transform .15s}
+.daygrp[open]>summary .car{transform:rotate(90deg)}
+.daygrp[open]>summary{border-bottom-left-radius:0;border-bottom-right-radius:0;border-bottom-color:transparent}
+.daybody{border:1px solid var(--line);border-top:0;border-radius:0 0 14px 14px;padding:12px 12px 4px;
+  background:var(--surface2)}
+.daybody .post{box-shadow:none}
 .post{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:10px;box-shadow:var(--shadow)}
 .post .ph{display:flex;align-items:center;gap:8px;margin-bottom:8px}
 .post .dt{font-size:11.5px;color:var(--faint);font-weight:600}

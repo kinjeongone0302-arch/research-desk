@@ -9,6 +9,7 @@ BASE = Path(__file__).resolve().parent
 sys.path.insert(0, str(BASE))
 sys.path.insert(0, str(BASE.parent / "fin"))
 import dart
+import download
 import krnames
 
 OUT = BASE.parent / "docs" / "data" / "cafe.json"
@@ -25,8 +26,11 @@ def main():
         hits = krnames.extract(p["text"], table)
         rec = {"id": p["id"], "b": p["menu"], "t": p["t"], "s": p["title"],
                "x": p["text"], "v": p.get("views"), "c": p.get("comments")}
-        if p.get("imgs"):
-            rec["m"] = p["imgs"]
+        # 네이버 CDN 은 브라우저 직접 호출을 막으므로(핫링크 차단) 받아둔 로컬 파일을 가리킨다
+        got = [download.local_name(u) for u in (p.get("imgs") or [])
+               if (download.MEDIA / download.local_name(u)).exists()]
+        if got:
+            rec["m"] = got
         if hits:
             rec["k"] = [c for c, _ in hits]
             for c, n in hits:

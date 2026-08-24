@@ -31,6 +31,7 @@ echo "[7/9] 채널 아카이브"
 
 echo "[8/9] 카페 리포트"
 python3 cafe/fetch.py 400 || echo "  카페 수집 실패 — 쿠키 만료면 cafe/.cookies 갱신"
+python3 cafe/download.py || true   # 네이버 CDN 은 핫링크를 막아 받아둬야 화면에 뜬다
 
 echo "[9/9] 기업 데이터 빌드"
 python3 fin/build.py
