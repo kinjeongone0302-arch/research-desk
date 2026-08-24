@@ -96,6 +96,9 @@ tbody tr.on{background:var(--accent-soft)}
 .daygrp>summary .car{color:var(--faint);font-size:11px;transition:transform .15s}
 .daygrp[open]>summary .car{transform:rotate(90deg)}
 .daygrp[open]>summary{border-bottom-left-radius:0;border-bottom-right-radius:0;border-bottom-color:transparent}
+/* details 는 summary 다음 요소 하나만 자동으로 숨긴다. 감싼 div 가 그 하나가 되도록
+   display 를 명시하지 않으면 브라우저에 따라 접힘이 먹지 않는다. */
+.daygrp:not([open])>.daybody{display:none}
 .daybody{border:1px solid var(--line);border-top:0;border-radius:0 0 14px 14px;padding:12px 12px 4px;
   background:var(--surface2)}
 .daybody .post{box-shadow:none}
