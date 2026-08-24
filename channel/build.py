@@ -23,17 +23,35 @@ def main():
     valid = {r["t"] for r in rows if r["m"] == "US"}
     name = {r["t"]: r["n"] for r in rows if r["m"] == "US"}
 
-    out, by_tk = [], defaultdict(list)
+    # 사진 여러 장을 한 번에 올리면 텔레그램은 그걸 여러 메시지로 쪼개 보낸다(같은 grouped_id).
+    # 그대로 두면 캡션 한 줄에 사진 열 장짜리 글이 열 개로 흩어진다 — 하나로 합친다.
+    merged, groups = [], {}
     for p in sorted(posts.values(), key=lambda x: x["t"], reverse=True):
-        tks = [t for t, _ in tickers.extract(p["text"], valid)]
-        rec = {"id": p["id"], "t": p["t"], "x": p["text"],
-               "v": p.get("views"), "g": p.get("group")}
-        if p.get("img"):
-            rec["m"] = p["img"]
+        g = p.get("group")
+        if g and g in groups:
+            head = groups[g]
+            if p.get("img"):
+                head["_imgs"].append(p["img"])
+            if p["text"] and len(p["text"]) > len(head["_text"]):
+                head["_text"] = p["text"]          # 캡션은 보통 한 장에만 달린다
+            head["_views"] = max(head["_views"] or 0, p.get("views") or 0)
+            continue
+        rec = {"id": p["id"], "t": p["t"], "_text": p["text"],
+               "_views": p.get("views"), "_imgs": [p["img"]] if p.get("img") else []}
+        if g:
+            groups[g] = rec
+        merged.append(rec)
+
+    out, by_tk = [], defaultdict(list)
+    for r in merged:
+        tks = [t for t, _ in tickers.extract(r["_text"], valid)]
+        rec = {"id": r["id"], "t": r["t"], "x": r["_text"], "v": r["_views"] or None}
+        if r["_imgs"]:
+            rec["m"] = r["_imgs"]
         if tks:
             rec["k"] = tks
             for t in tks:
-                by_tk[t].append(p["id"])
+                by_tk[t].append(r["id"])
         out.append(rec)
 
     mentions = [{"t": t, "n": name.get(t, t), "c": len(ids), "ids": ids[:200]}
@@ -43,7 +61,7 @@ def main():
     doc = {"channel": db.get("channel"),
            "generated_at": dt.datetime.now().astimezone().isoformat(timespec="seconds"),
            "from": days[0] if days else None, "to": days[-1] if days else None,
-           "count": len(out), "images": sum(1 for r in out if r.get("m")),
+           "count": len(out), "images": sum(len(r.get("m") or []) for r in out),
            "posts": out, "mentions": mentions}
     OUT.write_text(json.dumps(doc, ensure_ascii=False, separators=(",", ":")))
     print(f"→ {OUT}  ({OUT.stat().st_size/1024/1024:.1f} MB)")

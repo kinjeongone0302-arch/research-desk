@@ -94,9 +94,15 @@ tbody tr.on{background:var(--accent-soft)}
 .tk{font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:6px;background:var(--accent-soft);color:var(--accent);cursor:pointer}
 .post .imgs{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
 .post .imgs img{max-width:210px;max-height:170px;border-radius:8px;border:1px solid var(--line);cursor:zoom-in;object-fit:cover}
-.zoom{position:absolute;left:0;right:0;background:rgba(0,0,0,.9);z-index:90;display:none;padding:20px;text-align:center}
-.zoom.on{display:block}
-.zoom img{max-width:100%;border-radius:10px}
+.lb{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:100;display:none;
+  align-items:center;justify-content:center;flex-direction:column;gap:12px;padding:24px}
+.lb.on{display:flex}
+.lb img{max-width:92vw;max-height:82vh;object-fit:contain;border-radius:8px}
+.lb .lbbar{display:flex;align-items:center;gap:14px;color:#e9ebee;font-size:13px;font-weight:600}
+.lb .lbnav{border:1px solid rgba(255,255,255,.28);background:rgba(255,255,255,.06);color:#e9ebee;
+  font-family:inherit;font-size:15px;padding:6px 14px;border-radius:10px;cursor:pointer}
+.lb .lbnav:hover{background:rgba(255,255,255,.16)}
+.lb .lbnav[disabled]{opacity:.3;cursor:default}
 mark{background:var(--accent-soft);color:var(--accent);padding:0 2px;border-radius:3px}
 input.search{width:100%;padding:12px 16px;border-radius:13px;border:1px solid var(--line);background:var(--surface);color:var(--text);font:inherit;font-size:14px;outline:none;box-shadow:var(--shadow)}
 input.search:focus{border-color:var(--accent-line)}
@@ -248,6 +254,16 @@ svg{display:block;width:100%;overflow:visible}
       <div class="meth" id="methBody"></div>
     </section>
   </main>
+</div>
+
+<div class="lb" id="lightbox">
+  <img id="lbImg" alt="">
+  <div class="lbbar">
+    <button class="lbnav" id="lbPrev" type="button">‹</button>
+    <span id="lbCnt"></span>
+    <button class="lbnav" id="lbNext" type="button">›</button>
+    <button class="lbnav" id="lbClose" type="button">닫기 (Esc)</button>
+  </div>
 </div>
 
 <script src="app.js"></script>

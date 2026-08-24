@@ -854,7 +854,8 @@ function renderFeed() {
       <div class="ph"><span class="dt">${esc(p.t)}</span>
         ${p.v ? `<span class="vw">👁 ${p.v.toLocaleString()}</span>` : ''}</div>
       ${p.x ? `<div class="cap">${hl(p.x, FDQ)}</div>` : ''}
-      ${p.m ? `<div class="imgs"><img loading="lazy" src="media/${esc(p.m)}" data-z="media/${esc(p.m)}"></div>` : ''}
+      ${(p.m || []).length ? `<div class="imgs">${p.m.map((f, i) =>
+        `<img loading="lazy" src="media/${esc(f)}" data-zi="${i}" data-zs="${esc(p.m.join(','))}">`).join('')}</div>` : ''}
       ${(p.k || []).length ? `<div class="tks">${p.k.map(t => `<span class="tk" data-go="${esc(t)}">${esc(t)}</span>`).join('')}</div>` : ''}
     </div>`).join('')
     : '<div class="empty"><b>일치하는 글이 없습니다</b>다른 말로 찾아보세요</div>')
@@ -865,9 +866,8 @@ function renderFeed() {
   $('#fdBody').querySelectorAll('[data-go]').forEach(n => n.onclick = () => {
     FDTK = n.dataset.go; FDVIEW = 'feed'; FDN = 60; renderFeed(); window.scrollTo(0, 0);
   });
-  $('#fdBody').querySelectorAll('[data-z]').forEach(n => n.onclick = () => {
-    const w = window.open('', '_blank');
-    if (w) w.document.write(`<img src="${location.href.split('#')[0].replace(/\/$/, '')}/${n.dataset.z}" style="max-width:100%">`);
+  $('#fdBody').querySelectorAll('[data-zi]').forEach(n => n.onclick = () => {
+    lbOpen(n.dataset.zs.split(','), +n.dataset.zi);
   });
 }
 
@@ -877,3 +877,37 @@ $('#fdSearch').addEventListener('input', e => {
   renderFeed();
 });
 document.querySelectorAll('.navitem[data-tab="feed"]').forEach(b => b.addEventListener('click', fdEnsure));
+
+
+/* ═══════════ 이미지 확대 ═══════════ */
+/* 새 창을 띄우면 팝업 차단에 걸려 아무 일도 안 일어난다. 페이지 안에서 연다. */
+let LB = { list: [], i: 0 };
+
+function lbShow() {
+  const n = LB.list.length;
+  $('#lbImg').src = 'media/' + LB.list[LB.i];
+  $('#lbCnt').textContent = n > 1 ? `${LB.i + 1} / ${n}` : '';
+  $('#lbPrev').disabled = LB.i === 0;
+  $('#lbNext').disabled = LB.i >= n - 1;
+  $('#lbPrev').style.display = $('#lbNext').style.display = n > 1 ? '' : 'none';
+}
+function lbOpen(list, i) {
+  LB = { list, i: i || 0 };
+  $('#lightbox').classList.add('on');
+  lbShow();
+}
+function lbClose() { $('#lightbox').classList.remove('on'); $('#lbImg').src = ''; }
+function lbStep(d) {
+  const j = LB.i + d;
+  if (j >= 0 && j < LB.list.length) { LB.i = j; lbShow(); }
+}
+$('#lbClose').onclick = lbClose;
+$('#lbPrev').onclick = () => lbStep(-1);
+$('#lbNext').onclick = () => lbStep(1);
+$('#lightbox').onclick = (e) => { if (e.target.id === 'lightbox' || e.target.id === 'lbImg') lbClose(); };
+document.addEventListener('keydown', (e) => {
+  if (!$('#lightbox').classList.contains('on')) return;
+  if (e.key === 'Escape') lbClose();
+  else if (e.key === 'ArrowLeft') lbStep(-1);
+  else if (e.key === 'ArrowRight') lbStep(1);
+});
