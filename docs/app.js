@@ -750,7 +750,28 @@ function renderBond() {
 }
 
 /* ═══════════ 채널 아카이브 ═══════════ */
-let FEED = null, FDQ = '', FDTK = null, FDN = 60;
+let FEED = null, FDQ = '', FDTK = null, FDN = 60, FDR = 0, FDVIEW = 'sum';
+const FDRANGES = [['1주', 7], ['1개월', 30], ['3개월', 0]];
+
+/* 기간 안의 글만. 0 이면 전체 */
+function fdPeriod() {
+  if (!FEED) return [];
+  if (!FDR) return FEED.posts;
+  const last = new Date(FEED.to);
+  const cut = new Date(last.getTime() - FDR * 864e5).toISOString().slice(0, 10);
+  return FEED.posts.filter(p => p.t.slice(0, 10) >= cut);
+}
+
+/* 기간 안에서 종목별 언급 집계 — 몇 번, 며칠에 걸쳐, 마지막은 언제 */
+function fdTally(posts) {
+  const m = {};
+  for (const p of posts) for (const t of (p.k || [])) {
+    const r = m[t] || (m[t] = { t, c: 0, days: new Set(), last: p.t.slice(0, 10) });
+    r.c++; r.days.add(p.t.slice(0, 10));
+    if (p.t.slice(0, 10) > r.last) r.last = p.t.slice(0, 10);
+  }
+  return Object.values(m).sort((a, b) => b.c - a.c || b.days.size - a.days.size);
+}
 
 function fdEnsure() {
   if (FEED) return;
@@ -779,18 +800,55 @@ function hl(text, q) {
 
 function renderFeed() {
   if (!FEED) return;
+  const inRange = fdPeriod();
+  const tally = fdTally(inRange);
+  const nm = {};
+  FEED.mentions.forEach(m => nm[m.t] = m.n);
+
+  $('#fdRange').innerHTML = FDRANGES.map(([lab, d]) =>
+    `<button class="rbtn ${FDR === d ? 'on' : ''}" data-fr="${d}">${lab}</button>`).join('')
+    + `<span style="flex:1"></span>`
+    + `<button class="rbtn ${FDVIEW === 'sum' ? 'on' : ''}" data-fv="sum">종목 정리</button>`
+    + `<button class="rbtn ${FDVIEW === 'feed' ? 'on' : ''}" data-fv="feed">글 보기</button>`;
+  $('#fdRange').querySelectorAll('[data-fr]').forEach(b => b.onclick = () => { FDR = +b.dataset.fr; FDN = 60; renderFeed(); });
+  $('#fdRange').querySelectorAll('[data-fv]').forEach(b => b.onclick = () => { FDVIEW = b.dataset.fv; renderFeed(); });
+
+  const sum = $('#fdSum');
+  if (FDVIEW === 'sum' && !FDQ) {
+    const total = tally.reduce((a, r) => a + r.c, 0);
+    sum.innerHTML = `<div class="note" style="margin:6px 0 10px">${inRange.length.toLocaleString()}건 중 `
+      + `미국 종목 언급 ${total}회 · ${tally.length}개 종목</div>`
+      + (tally.length ? `<div class="box" style="overflow-x:auto"><table><thead><tr>
+        <th>티커</th><th style="text-align:left">회사</th><th>언급</th><th>언급일수</th><th>최근</th></tr></thead>
+        <tbody>${tally.map(r => `<tr data-tk="${esc(r.t)}">
+          <td class="nm">${esc(r.t)}</td>
+          <td style="text-align:left;color:var(--sub)">${esc((nm[r.t] || '').slice(0, 34))}</td>
+          <td class="num" style="font-weight:700">${r.c}</td>
+          <td class="num" style="color:var(--faint)">${r.days.size}</td>
+          <td class="num" style="color:var(--faint)">${dayfmt(r.last)}</td></tr>`).join('')}</tbody></table></div>`
+        : '<div class="empty">이 기간엔 언급된 미국 종목이 없습니다</div>');
+    sum.querySelectorAll('tr[data-tk]').forEach(tr => tr.onclick = () => {
+      FDTK = tr.dataset.tk; FDVIEW = 'feed'; FDN = 60; renderFeed();
+    });
+    $('#fdChips').innerHTML = '';
+    $('#fdBody').innerHTML = '';
+    return;
+  }
+  sum.innerHTML = '';
+
   const chips = $('#fdChips');
   chips.innerHTML = `<button class="rbtn ${FDTK ? '' : 'on'}" data-tk="">전체</button>`
-    + FEED.mentions.slice(0, 20).map(m =>
-      `<button class="rbtn ${FDTK === m.t ? 'on' : ''}" data-tk="${esc(m.t)}" title="${esc(m.n)}">${esc(m.t)} ${m.c}</button>`).join('');
+    + tally.slice(0, 20).map(m =>
+      `<button class="rbtn ${FDTK === m.t ? 'on' : ''}" data-tk="${esc(m.t)}" title="${esc(nm[m.t] || '')}">${esc(m.t)} ${m.c}</button>`).join('');
   chips.querySelectorAll('[data-tk]').forEach(b => b.onclick = () => {
     FDTK = b.dataset.tk || null; FDN = 60; renderFeed();
   });
 
-  const hits = FEED.posts.filter(fdMatch);
+  const hits = inRange.filter(fdMatch);
   const show = hits.slice(0, FDN);
   const head = `<div class="note" style="margin:6px 0 12px">${hits.length.toLocaleString()}건`
-    + (FDTK ? ` · <b>${esc(FDTK)}</b> 언급` : '') + (FDQ ? ` · "${esc(FDQ)}" 포함` : '') + `</div>`;
+    + (FDTK ? ` · <b>${esc(FDTK)}</b>${nm[FDTK] ? ' (' + esc(nm[FDTK]) + ')' : ''} 언급` : '')
+    + (FDQ ? ` · "${esc(FDQ)}" 포함` : '') + `</div>`;
 
   $('#fdBody').innerHTML = head + (show.length ? show.map(p => `<div class="post">
       <div class="ph"><span class="dt">${esc(p.t)}</span>
@@ -805,7 +863,7 @@ function renderFeed() {
   const more = $('#fdMore');
   if (more) more.onclick = () => { FDN += 60; renderFeed(); };
   $('#fdBody').querySelectorAll('[data-go]').forEach(n => n.onclick = () => {
-    FDTK = n.dataset.go; FDN = 60; renderFeed(); window.scrollTo(0, 0);
+    FDTK = n.dataset.go; FDVIEW = 'feed'; FDN = 60; renderFeed(); window.scrollTo(0, 0);
   });
   $('#fdBody').querySelectorAll('[data-z]').forEach(n => n.onclick = () => {
     const w = window.open('', '_blank');
@@ -813,5 +871,9 @@ function renderFeed() {
   });
 }
 
-$('#fdSearch').addEventListener('input', e => { FDQ = e.target.value.trim(); FDN = 60; renderFeed(); });
+$('#fdSearch').addEventListener('input', e => {
+  FDQ = e.target.value.trim(); FDN = 60;
+  if (FDQ) FDVIEW = 'feed';
+  renderFeed();
+});
 document.querySelectorAll('.navitem[data-tab="feed"]').forEach(b => b.addEventListener('click', fdEnsure));

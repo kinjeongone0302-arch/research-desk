@@ -6,3 +6,6 @@ bonds/cache/
 *.log
 __pycache__/
 .DS_Store
+
+# 네이버 세션 쿠키 — 절대 커밋 금지
+cafe/.cookies
