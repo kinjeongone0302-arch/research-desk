@@ -885,14 +885,14 @@ let LB = { list: [], i: 0 };
 
 function lbShow() {
   const n = LB.list.length;
-  $('#lbImg').src = 'media/' + LB.list[LB.i];
+  $('#lbImg').src = (LB.abs ? '' : 'media/') + LB.list[LB.i];
   $('#lbCnt').textContent = n > 1 ? `${LB.i + 1} / ${n}` : '';
   $('#lbPrev').disabled = LB.i === 0;
   $('#lbNext').disabled = LB.i >= n - 1;
   $('#lbPrev').style.display = $('#lbNext').style.display = n > 1 ? '' : 'none';
 }
-function lbOpen(list, i) {
-  LB = { list, i: i || 0 };
+function lbOpen(list, i, abs) {
+  LB = { list, i: i || 0, abs: !!abs };
   $('#lightbox').classList.add('on');
   lbShow();
 }
@@ -911,3 +911,120 @@ document.addEventListener('keydown', (e) => {
   else if (e.key === 'ArrowLeft') lbStep(-1);
   else if (e.key === 'ArrowRight') lbStep(1);
 });
+
+/* ═══════════ 카페 리포트 (네이버 카페) ═══════════ */
+let CAFE = null, CFQ = '', CFST = null, CFB = null, CFR = 0, CFN = 30, CFVIEW = 'sum';
+const CFRANGES = [['1개월', 30], ['3개월', 90], ['6개월', 180], ['1년', 0]];
+
+function cfEnsure() {
+  if (CAFE) return;
+  fetch('data/cafe.json?t=' + Date.now()).then(r => r.json()).then(d => {
+    CAFE = d;
+    $('#cfMeta').innerHTML = `${esc(d.cafe)} · ${d.boards.map(esc).join(' · ')} · `
+      + `글 ${d.count.toLocaleString()}건 · ${dayfmt(d.from)} ~ ${dayfmt(d.to)}`;
+    renderCafe();
+  }).catch(() => { $('#cfMeta').textContent = '카페 데이터를 불러오지 못했습니다'; });
+}
+
+function cfPeriod() {
+  let ps = CAFE.posts;
+  if (CFB) ps = ps.filter(p => p.b === CFB);
+  if (!CFR) return ps;
+  const cut = new Date(new Date(CAFE.to).getTime() - CFR * 864e5).toISOString().slice(0, 10);
+  return ps.filter(p => p.t.slice(0, 10) >= cut);
+}
+
+function cfTally(posts) {
+  const nm = {};
+  CAFE.stocks.forEach(s => nm[s.c] = s.n);
+  const m = {};
+  for (const p of posts) for (const c of (p.k || [])) {
+    const r = m[c] || (m[c] = { c, n: nm[c] || c, cnt: 0, days: new Set(), last: p.t.slice(0, 10) });
+    r.cnt++; r.days.add(p.t.slice(0, 10));
+    if (p.t.slice(0, 10) > r.last) r.last = p.t.slice(0, 10);
+  }
+  return Object.values(m).sort((a, b) => b.cnt - a.cnt || b.days.size - a.days.size);
+}
+
+function cfMatch(p) {
+  if (CFST && !(p.k || []).includes(CFST)) return false;
+  if (!CFQ) return true;
+  const q = CFQ.toLowerCase();
+  return (p.x || '').toLowerCase().includes(q) || (p.s || '').toLowerCase().includes(q);
+}
+
+function renderCafe() {
+  if (!CAFE) return;
+  const inRange = cfPeriod();
+  const tally = cfTally(inRange);
+  const nm = {}; tally.forEach(r => nm[r.c] = r.n);
+
+  $('#cfCtl').innerHTML = CFRANGES.map(([l, d]) =>
+      `<button class="rbtn ${CFR === d ? 'on' : ''}" data-cr="${d}">${l}</button>`).join('')
+    + `<span style="width:10px"></span>`
+    + `<button class="rbtn ${CFB ? '' : 'on'}" data-cb="">전체 게시판</button>`
+    + CAFE.boards.map(b => `<button class="rbtn ${CFB === b ? 'on' : ''}" data-cb="${esc(b)}">${esc(b)}</button>`).join('')
+    + `<span style="flex:1"></span>`
+    + `<button class="rbtn ${CFVIEW === 'sum' ? 'on' : ''}" data-cv="sum">종목 정리</button>`
+    + `<button class="rbtn ${CFVIEW === 'feed' ? 'on' : ''}" data-cv="feed">글 보기</button>`;
+  $('#cfCtl').querySelectorAll('[data-cr]').forEach(b => b.onclick = () => { CFR = +b.dataset.cr; CFN = 30; renderCafe(); });
+  $('#cfCtl').querySelectorAll('[data-cb]').forEach(b => b.onclick = () => { CFB = b.dataset.cb || null; CFN = 30; renderCafe(); });
+  $('#cfCtl').querySelectorAll('[data-cv]').forEach(b => b.onclick = () => { CFVIEW = b.dataset.cv; renderCafe(); });
+
+  if (CFVIEW === 'sum' && !CFQ && !CFST) {
+    $('#cfSum').innerHTML = `<div class="note" style="margin:6px 0 10px">${inRange.length.toLocaleString()}건 · `
+      + `언급 종목 ${tally.length.toLocaleString()}개</div>`
+      + (tally.length ? `<div class="box" style="overflow-x:auto"><table><thead><tr>
+        <th style="text-align:left">종목</th><th>코드</th><th>언급</th><th>언급일수</th><th>최근</th></tr></thead>
+        <tbody>${tally.slice(0, 120).map(r => `<tr data-st="${esc(r.c)}">
+          <td class="nm">${esc(r.n)}</td>
+          <td class="num" style="color:var(--faint)">${esc(r.c)}</td>
+          <td class="num" style="font-weight:700">${r.cnt}</td>
+          <td class="num" style="color:var(--faint)">${r.days.size}</td>
+          <td class="num" style="color:var(--faint)">${dayfmt(r.last)}</td></tr>`).join('')}</tbody></table></div>`
+        : '<div class="empty">이 기간엔 언급된 종목이 없습니다</div>');
+    $('#cfSum').querySelectorAll('tr[data-st]').forEach(tr => tr.onclick = () => {
+      CFST = tr.dataset.st; CFVIEW = 'feed'; CFN = 30; renderCafe();
+    });
+    $('#cfBody').innerHTML = '';
+    return;
+  }
+  $('#cfSum').innerHTML = '';
+
+  const hits = inRange.filter(cfMatch);
+  const show = hits.slice(0, CFN);
+  const head = `<div class="note" style="margin:6px 0 12px">${hits.length.toLocaleString()}건`
+    + (CFST ? ` · <b>${esc(nm[CFST] || CFST)}</b> 언급 <span class="tk" data-clr="1">해제</span>` : '')
+    + (CFQ ? ` · "${esc(CFQ)}" 포함` : '') + `</div>`;
+
+  $('#cfBody').innerHTML = head + (show.length ? show.map(p => `<div class="post">
+      <div class="ph"><span class="pill">${esc(p.b)}</span><span class="dt">${esc(p.t)}</span>
+        ${p.v ? `<span class="vw">👁 ${p.v.toLocaleString()}${p.c ? ' · 💬 ' + p.c : ''}</span>` : ''}</div>
+      <div style="font-size:14.5px;font-weight:800;margin-bottom:8px">
+        <a href="https://cafe.naver.com/${esc(CAFE.url)}/${p.id}" target="_blank" rel="noopener">${hl(p.s, CFQ)}</a></div>
+      <div class="cap">${hl((p.x || '').slice(0, 2200), CFQ)}${(p.x || '').length > 2200 ? '\n…' : ''}</div>
+      ${(p.m || []).length ? `<div class="imgs">${p.m.map((u, i) =>
+        `<img loading="lazy" src="${esc(u)}" data-czi="${i}" data-czs="${esc(p.m.join(' '))}">`).join('')}</div>` : ''}
+      ${(p.k || []).length ? `<div class="tks">${p.k.slice(0, 24).map(c =>
+        `<span class="tk" data-cgo="${esc(c)}">${esc(nm[c] || c)}</span>`).join('')}</div>` : ''}
+    </div>`).join('')
+    : '<div class="empty"><b>일치하는 글이 없습니다</b>다른 말로 찾아보세요</div>')
+    + (hits.length > CFN ? `<button class="hbtn" id="cfMore" style="width:100%;margin-top:6px">더 보기 (${(hits.length - CFN).toLocaleString()}건 남음)</button>` : '');
+
+  const more = $('#cfMore');
+  if (more) more.onclick = () => { CFN += 30; renderCafe(); };
+  $('#cfBody').querySelectorAll('[data-cgo]').forEach(n => n.onclick = () => {
+    CFST = n.dataset.cgo; CFN = 30; renderCafe(); window.scrollTo(0, 0);
+  });
+  $('#cfBody').querySelectorAll('[data-clr]').forEach(n => n.onclick = () => { CFST = null; renderCafe(); });
+  $('#cfBody').querySelectorAll('[data-czi]').forEach(n => n.onclick = () => {
+    lbOpen(n.dataset.czs.split(' '), +n.dataset.czi, true);
+  });
+}
+
+$('#cfSearch').addEventListener('input', e => {
+  CFQ = e.target.value.trim(); CFN = 30;
+  if (CFQ) CFVIEW = 'feed';
+  renderCafe();
+});
+document.querySelectorAll('.navitem[data-tab="cafe"]').forEach(b => b.addEventListener('click', cfEnsure));

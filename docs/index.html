@@ -160,6 +160,7 @@ svg{display:block;width:100%;overflow:visible}
     <button class="navitem" data-tab="co">기업 분석 <small>DART·EDGAR</small></button>
     <div class="navgroup">리서치</div>
     <button class="navitem" data-tab="feed">채널 아카이브 <small>태린이아빠</small></button>
+    <button class="navitem" data-tab="cafe">카페 리포트 <small>오르비스</small></button>
     <div class="navgroup">수주</div>
     <button class="navitem" data-tab="backlog">수주잔고 <small>DART</small></button>
     <div class="navgroup">참고</div>
@@ -235,6 +236,17 @@ svg{display:block;width:100%;overflow:visible}
       <div class="rrow" id="fdChips" style="margin:8px 0 4px;flex-wrap:wrap"></div>
       <div id="fdSum"></div>
       <div id="fdBody"></div>
+    </section>
+
+    <section class="panel" id="tab-cafe">
+      <div class="ptitle">카페 리포트</div>
+      <div class="pdesc" id="cfMeta">불러오는 중…</div>
+      <div class="searchwrap" style="max-width:560px">
+        <input class="search" id="cfSearch" placeholder="종목명 검색 (예: 코스맥스, 두산에너빌리티, 반도체 소부장)" autocomplete="off">
+      </div>
+      <div class="rrow" id="cfCtl" style="margin:10px 0 2px;flex-wrap:wrap"></div>
+      <div id="cfSum"></div>
+      <div id="cfBody"></div>
     </section>
 
     <section class="panel" id="tab-backlog">
